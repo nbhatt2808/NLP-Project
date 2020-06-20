@@ -1,0 +1,170 @@
+---
+title: 'Executive 2: Final Preparation'
+author: "Neeraj Bhatt & Nirmesh Gollamandala"
+date: "Sys.Date()"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objective
+
+This project should allow you to apply the information you've learned in the course to a new dataset. While the structure of the final project will be more of a research project, you can use this knowledge to appropriately answer questions in all fields, along with the practical skills of writing a report that others can read. The dataset must be related to language or language processing in some way. You must use an analysis we learned in class. 
+
+This assignment is preparation for the final project focused on text cleaning. You will find a dataset that matches what you are interested in for your final project (likely sentiment analysis, but entity recognition or another classification problem would be acceptable as well). You will import your dataset and clean the data using the steps listed below. You can change datasets between now and the final, but this project should get the code ready for the data cleaning section. 
+
+### Method - Data - Variables
+
+Explain the data you have selected to study. You can find data through many available corpora or other datasets online (ask for help here for sure!). How was the data collected? Who/what is in the data? 
+
+```{r}
+hillary_data <- read.csv('hillary_tweets.csv')
+head(hillary_data)
+```
+
+```{r}
+print(hillary_data[1, 'tweets'])
+print(hillary_data[2, 'tweets'])
+print(hillary_data[3, 'tweets'])
+print(hillary_data[4, 'tweets'])
+```
+
+Objective: Do a stylometric Analysis of Hilary Clinton’s tweets (assuming her tweets are composed by her) vs the Wikileaks of her emails, 
+we would like to test the authenticity of her emails; based on the style of writing (using tweets as a reference / training data)
+
+Hillary's tweets have been collected from Kaggle (https://www.kaggle.com/benhamner/clinton-trump-tweets/data). 
+
+The data initially contained Donald Trumps and Hillary Clinton's tweets. For the purpose of our project we are only concerned with Hillary Clinton's tweets so we extracted Hillary's tweets out of the data and we took only her original tweets and not the retweets. Thus the only field in the data represents all of the 2629 tweets of Hillary Clinton.
+
+### Clean the Data
+
+You should include code to perform the following steps:
+
+```{python}
+import contractions
+import string
+import spacy
+import re
+from nltk.stem import WordNetLemmatizer
+from nltk.tag import pos_tag
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+```
+
+```{python}
+hillary_tweets = r.hillary_data
+hillary_tweets.head()
+```
+
+
+- *Lower case
+```{python}
+hillary_tweets['tweets'] = [line.lower() for line in hillary_tweets['tweets']]
+hillary_tweets.head()
+```
+
+```{python}
+hillary_tweets['tweets'][1]
+```
+
+First we need to remove all the email links at the end as that's not part of the tweet.
+
+```{python}
+hillary_tweets['tweets'] = hillary_tweets['tweets'].apply(lambda x: re.sub(r'https?://\S+', '', x))
+hillary_tweets.head()
+```
+
+```{python}
+hillary_tweets['tweets'][1]
+```
+
+- *Remove contractions
+```{python}
+hillary_tweets['tweets'] = [contractions.fix(line) for line in hillary_tweets['tweets']]
+```
+
+```{python}
+hillary_tweets['tweets'][1]
+```
+
+- *Remove symbols/non-Latin characters (unless you are interested in emoticons)
+
+```{python}
+string.punctuation
+```
+
+```{python}
+s = hillary_tweets['tweets'][18]
+print(s)
+print('\n')
+print(s.translate(str.maketrans('', '', string.punctuation)))
+```
+
+```{python}
+hillary_tweets['tweets'] = hillary_tweets['tweets'].apply(lambda x: x.translate(str.maketrans('', '', string.punctuation)))
+```
+
+```{python}
+hillary_tweets['tweets'][1]
+```
+
+- Fix spelling errors
+
+We won't be needing this step as it will unnecessarily suggest changing place names or person names mentioned in tweets.
+
+- Lemmatize the words
+```{python}
+from nltk.stem import WordNetLemmatizer
+
+wordnet_lemmatizer = WordNetLemmatizer()
+def lemmatize_all(sentence):
+    for word, tag in pos_tag(sentence.split()):
+        if tag.startswith('NN'):
+            yield wordnet_lemmatizer.lemmatize(word, pos = 'n')
+        elif tag.startswith('VB'):
+            yield wordnet_lemmatizer.lemmatize(word, pos = 'v')
+        elif tag.startswith('JJ'):
+            yield wordnet_lemmatizer.lemmatize(word, pos = 'a')
+        else:
+            yield wordnet_lemmatizer.lemmatize(word)
+    
+def lemmatize_sent(sentence):
+    return ' '.join(lemmatize_all(sentence))
+```
+
+```{python}
+hillary_tweets_lemma = hillary_tweets.copy()
+hillary_tweets_lemma['tweets'] = hillary_tweets_lemma['tweets'].apply(lambda x: lemmatize_sent(x))
+```
+
+```{python}
+hillary_tweets_lemma['tweets'][1]
+```
+
+- *Remove stopwords 
+
+```{python}
+def remove_stopwords(sentence, kind = "english"):
+    if kind == "smart":
+         return ' '.join([word for word in sentence.split() if word not in smart_stopwords])
+    else:
+         return ' '.join([word for word in sentence.split() if word not in stopwords.words(kind)])
+```
+
+```{python}
+hillary_tweets_lemma['tweets'] = [remove_stopwords(line, kind = 'english') for line in hillary_tweets_lemma['tweets']]
+```
+
+```{python}
+hillary_tweets_lemma['tweets'][0]
+```
+
+```{python}
+hillary_tweets_lemma['tweets'][1]
+```
+
+* Indicates a section that should be included, other sections depend on the analysis. 
+
+You can perform this analysis in Python or R. You will turn in a knitted file that shows the steps of the code, along with the final print out of the first few words for the finalized data. Be sure to save the data at each step and *do not* print it out until the end (you can make it print temporarily for yourself, but the final report should not be pages and pages of text printed out). 
